@@ -16,7 +16,7 @@ set -euo pipefail
 : "${CH_DATA_DIR:=${PWD}/clickhouse_data}"
 : "${CH_LOG:=${PWD}/clickhouse-server.log}"
 : "${CH_BACKEND:=docker}"
-: "${CH_IMAGE:=clickhouse/clickhouse-server:head}"
+: "${CH_IMAGE:=clickhouse/clickhouse-server:26.9.9.28}"
 : "${CH_CONTAINER:=searchbench-clickhouse}"
 
 # Docker backend: run the official image with host networking (server binds

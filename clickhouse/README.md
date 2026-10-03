@@ -13,15 +13,13 @@ Needs: `jq`, `wget`/`curl`, and `ss`/`fuser`/`lsof`. `./install` fetches
 the ClickHouse binary automatically if `$CLICKHOUSE_BIN` isn't set and
 `./clickhouse` doesn't exist (runs `curl https://clickhouse.com/ | sh`).
 
-## Measured configuration
+## Configuration
 
 | | |
 |---|---|
-| ClickHouse | `clickhouse/clickhouse-server:head` = master 26.10.1.332 for 100M and 1B, 26.10.1.344 for 10B (all 2026-09-21; `install` re-pulls `head`, so the build advances between runs) |
-| Why master | the text index posting-list cache is on by default since [ClickHouse#120677](https://github.com/ClickHouse/ClickHouse/pull/120677) (2026-09-18), and positions are stored compressed, so the 1B table is 59 GiB instead of 167 GiB. No release has these yet; 26.10 will |
-| Merges | `./load` issues `SYSTEM STOP MERGES otel_logs` after the insert and `./start` re-issues it after every restart (the driver restarts the server before each 1B query and the setting does not persist). Without it the load leaves ~1000 parts that merge for the whole query phase, aborted and restarted by every per-query restart; SereneDB's load ends with a synchronous refresh and its compaction is idle when queries start. Measured on the same master build and machine: merges running costs 1.65x on the hot median and 1.8x on the total and brings back the 60 s timeout on Q23. At 100M the effect reverses slightly (merges finish within the run there), which is why the 100M hot median is 31.5 ms against 29.0 ms for 26.8.2.7 |
-| 10B cold ceiling | run with `SEARCHBENCH_COLD_TIMEOUT=180`: on dropped caches every scan query's first try takes 60 to 70 s over 605 GiB, and with the default 60 s ceiling a capped cold try ends the query and pads the hot tries with 60 s. The published 10B ClickHouse row was produced the same way (its file has cold values of 99 s and 180 s), so this keeps the two comparable. Q84 (join on `payment`) hits the 60 s hot cap where the published run had 20 s; the other non-scan joins are 1.5 to 2x faster |
-| Machine | GCP `n2-standard-32`, 3 TB pd-ssd, Ubuntu 24.04, same as the other engines' published runs; SereneDB 26.09.1 re-measured on the same VM gave 29.5 ms / 18.0 s at 1B against the published 31.0 ms / 19.1 s |
+| ClickHouse | `clickhouse/clickhouse-server:26.9.9.28` (latest stable release; set `CH_IMAGE` to override). Will move to 26.10 once it is released: 26.10 enables the text index posting-list cache by default ([ClickHouse#120677](https://github.com/ClickHouse/ClickHouse/pull/120677)) and stores positions compressed |
+| Merges | `./load` issues `SYSTEM STOP MERGES otel_logs` after the insert and `./start` re-issues it after every restart (the driver restarts the server before each 1B query and the setting does not persist). Without it the load leaves ~1000 parts that merge for the whole query phase, and every per-query restart aborts and restarts those merges, so the query phase measures the merge backlog |
+| 10B cold ceiling | run with `SEARCHBENCH_COLD_TIMEOUT=180`: on dropped caches every scan query's first try takes over 60 s at 10B, and with the default 60 s ceiling a capped cold try ends the query and pads the hot tries with 60 s. The published 10B ClickHouse row was produced the same way (its file has cold values of 99 s and 180 s) |
 
 ## Run
 
