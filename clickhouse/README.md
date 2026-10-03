@@ -17,7 +17,7 @@ the ClickHouse binary automatically if `$CLICKHOUSE_BIN` isn't set and
 
 | | |
 |---|---|
-| ClickHouse | `clickhouse/clickhouse-server:26.9.9.28` (latest stable release; set `CH_IMAGE` to override). Will move to 26.10 once it is released: 26.10 enables the text index posting-list cache by default ([ClickHouse#120677](https://github.com/ClickHouse/ClickHouse/pull/120677)) and stores positions compressed |
+| ClickHouse | `clickhouse/clickhouse-server:26.9.9.28` (latest stable release; set `CH_IMAGE` to override). Will move to 26.10 once it is released: 26.10 enables the text index posting-list cache by default ([ClickHouse#120677](https://github.com/ClickHouse/ClickHouse/pull/120677)) |
 | Merges | `./load` issues `SYSTEM STOP MERGES otel_logs` after the insert and `./start` re-issues it after every restart (the driver restarts the server before each 1B query and the setting does not persist). Without it the load leaves ~1000 parts that merge for the whole query phase, and every per-query restart aborts and restarts those merges, so the query phase measures the merge backlog |
 | 10B cold ceiling | run with `SEARCHBENCH_COLD_TIMEOUT=180`: on dropped caches every scan query's first try takes over 60 s at 10B, and with the default 60 s ceiling a capped cold try ends the query and pads the hot tries with 60 s. The published 10B ClickHouse row was produced the same way (its file has cold values of 99 s and 180 s) |
 
